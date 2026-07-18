@@ -1,10 +1,10 @@
 #!/bin/bash
 # One-command setup: OpenRouter-backed Claude Code on a fresh machine.
 #
-#   git clone <this-repo> && ./or-github/setup.sh
+#   git clone <this-repo> && cd or-github && ./setup.sh
 #
 # What it does:
-#   1. Creates ./.openrouter/ in the folder you ran this from
+#   1. Creates ../.openrouter/ (in parent directory) in the folder you ran this from
 #      (cc, credit-guard.sh, openrouter-mcp-guard.sh, .env)
 #      (dot-prefixed: hidden from ls/Finder and sorts above numbered project folders)
 #   2. Prompts for your OpenRouter API key and writes .env (skips if .env exists)
@@ -18,7 +18,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"     # where the cloned repo (or-github) lives
-INSTALL_PARENT="$SCRIPT_DIR"                     # .openrouter/ goes in the or-github folder
+INSTALL_PARENT="$(cd "$(dirname "$SCRIPT_DIR")" && pwd)"                     # Parent directory (.openrouter/ goes here)
 INSTALL_DIR="$INSTALL_PARENT/.openrouter"        # dot-prefixed: hidden + sorts to the top of the dir
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 
@@ -262,6 +262,7 @@ echo ""
 echo "    3. Switch models mid-session with: /model <slug-from-openrouter.ai/models>"
 echo ""
 
+
 # --- 9. Cleanup or-github -------------------------------------------------------
 echo ""
 echo "==> Ready to clean up setup repository"
@@ -271,17 +272,32 @@ echo "    The or-github setup repository can now be safely deleted."
 echo ""
 printf "    Delete the or-github folder? (y/n): "
 read -r cleanup
-if [[ "$cleanup" =~ ^[Yy]$ ]]; then
+if [[ "$cleanup" == "y" || "$cleanup" == "Y" ]]; then
   if [[ -d "$SCRIPT_DIR/.git" ]]; then
-    # We're in a git repo, so remove it safely
-    rm -rf "$SCRIPT_DIR"
-    echo "    ✓ Deleted or-github repository"
     echo ""
-    echo "Setup complete! Your .openrouter/ installation is ready to use."
+    echo "    Deleting or-github repository..."
+    rm -rf "$SCRIPT_DIR"
+    
+    if [[ ! -d "$SCRIPT_DIR" ]]; then
+      echo "    ✓ Successfully deleted or-github"
+      echo ""
+      echo "Setup complete! Your .openrouter/ installation at:"
+      echo "  $INSTALL_DIR"
+      echo ""
+      echo "is ready to use. You can now:"
+      echo "  1. Source your shell config: source $SHELL_RC"
+      echo "  2. Use the aliases: or-kimi-k3, or-opus, or-gpt"
+    else
+      echo "    ⚠️  Could not delete directory. Please manually delete:"
+      echo "       rm -rf $SCRIPT_DIR"
+    fi
   else
     echo "    ⚠️  Could not verify git repository. Please manually delete:"
-    echo "       rm -rf $(dirname "$SCRIPT_DIR")"
+    echo "       rm -rf $SCRIPT_DIR"
   fi
 else
   echo "    Keeping or-github folder for reference"
+  echo ""
+  echo "To delete it later, run:"
+  echo "    rm -rf $SCRIPT_DIR"
 fi
