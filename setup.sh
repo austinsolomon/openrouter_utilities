@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 # One-command setup: OpenRouter-backed Claude Code on a fresh machine.
 #
 #   git clone <this-repo> && ./or-github/setup.sh
@@ -6,17 +6,30 @@
 # What it does:
 #   1. Creates ./openrouter/ in the folder you ran this from (cc, credit-guard.sh, .env)
 #   2. Prompts for your OpenRouter API key and writes .env (skips if .env exists)
-#   3. Adds the or-* aliases to ~/.zshrc (idempotent)
+#   3. Detects shell (zsh, bash, PowerShell) and adds aliases (idempotent)
 #   4. Registers the credit-guard PreToolUse hook in ~/.claude/settings.json
-#   5. Tells you to: source ~/.zshrc
+#   5. Tests each model to ensure connectivity
+#   6. Guides OpenRouter MCP setup and verification
+#   7. Prompts to delete or-github (this repo) after setup completes
 
 set -e
 
-SCRIPT_DIR="${0:A:h}"          # where the cloned repo lives
-INSTALL_PARENT="$PWD"          # openrouter/ goes where the command was run from
+SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"  # where the cloned repo lives
+INSTALL_PARENT="$PWD"                            # openrouter/ goes where the command was run from
 INSTALL_DIR="$INSTALL_PARENT/openrouter"
-ZSHRC="$HOME/.zshrc"
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+
+# Detect shell
+if [[ -n "$ZSH_VERSION" ]]; then
+  SHELL_RC="$HOME/.zshrc"
+  SHELL_NAME="zsh"
+elif [[ -n "$BASH_VERSION" ]]; then
+  SHELL_RC="$HOME/.bashrc"
+  SHELL_NAME="bash"
+else
+  SHELL_RC="$HOME/.bashrc"  # Default fallback
+  SHELL_NAME="bash/zsh"
+fi
 
 echo "==> Installing into $INSTALL_DIR"
 
@@ -66,18 +79,19 @@ EOF
   echo "    wrote $INSTALL_DIR/.env (chmod 600)"
 fi
 
-# --- 3. zshrc aliases -----------------------------------------------------------
+# --- 3. shell aliases -----------------------------------------------------------
 ALIAS_BLOCK="# OpenRouter-backed Claude Code launchers (see $INSTALL_DIR)
 alias or-opus='OR_MODEL=anthropic/claude-opus-4.8 $INSTALL_DIR/cc'
 alias or-kimi-k3='OR_MODEL=moonshotai/kimi-k3 $INSTALL_DIR/cc'
 alias or-gpt='OR_MODEL=openai/gpt-5.3-codex $INSTALL_DIR/cc'"
 
-touch "$ZSHRC"
-if grep -q "OR_MODEL=anthropic/claude-opus-4.8" "$ZSHRC" 2>/dev/null; then
-  echo "==> Aliases already in $ZSHRC — skipping"
+echo "==> Configuring $SHELL_NAME shell aliases"
+touch "$SHELL_RC"
+if grep -q "OR_MODEL=anthropic/claude-opus-4.8" "$SHELL_RC" 2>/dev/null; then
+  echo "    Aliases already in $SHELL_RC — skipping"
 else
-  echo "==> Adding aliases to $ZSHRC"
-  printf '\n%s\n' "$ALIAS_BLOCK" >> "$ZSHRC"
+  echo "    Adding aliases to $SHELL_RC"
+  printf '\n%s\n' "$ALIAS_BLOCK" >> "$SHELL_RC"
 fi
 
 # --- 4. credit-guard hook in ~/.claude/settings.json -----------------------------
@@ -119,7 +133,38 @@ else:
     print(f"    added to {path}")
 PY
 
-# --- 5. OpenRouter MCP setup -------------------------------------------------------
+# --- 5. Model Testing -------------------------------------------------------
+echo "==> Testing OpenRouter models"
+echo ""
+echo "    Sourcing shell configuration to load aliases..."
+source "$SHELL_RC" 2>/dev/null || true
+
+if command -v claude >/dev/null 2>&1; then
+  echo "    Testing model connectivity (this may take a moment)..."
+  echo ""
+
+  # Export env for testing
+  export OPENROUTER_API_KEY=$(grep OPENROUTER_API_KEY "$INSTALL_DIR/.env" | cut -d= -f2)
+  export OR_MODEL="anthropic/claude-opus-4.8"
+
+  models=("or-opus:anthropic/claude-opus-4.8" "or-kimi-k3:moonshotai/kimi-k3" "or-gpt:openai/gpt-5.3-codex")
+  for model_pair in "${models[@]}"; do
+    IFS=: read -r name slug <<< "$model_pair"
+    printf "    Testing %-15s ... " "$name"
+    if timeout 10 "$INSTALL_DIR/cc" "Say 'working'" > /dev/null 2>&1; then
+      echo "✓"
+    else
+      echo "⚠ (may be rate-limited, check manually later)"
+    fi
+    export OR_MODEL="$slug"
+  done
+else
+  echo "    Claude CLI not found — skipping model tests"
+  echo "    You can test models manually after setup completes"
+fi
+
+# --- 7. OpenRouter MCP setup -------------------------------------------------------
+echo ""
 echo "==> Setting up OpenRouter MCP"
 echo ""
 echo "    The OpenRouter MCP allows Claude Code to route requests through OpenRouter."
@@ -128,6 +173,8 @@ echo ""
 printf "    Do you want to install/configure the openrouter MCP now? (y/n): "
 read -r install_mcp
 if [[ "$install_mcp" =~ ^[Yy]$ ]]; then
+  echo ""
+  echo "    📋 MCP Configuration Steps:"
   echo ""
   echo "    1. Open Claude Code settings: ~/.claude/settings.json"
   echo "    2. Add the following to the 'mcpServers' section:"
@@ -150,21 +197,21 @@ MCP_CONFIG
   read -r
   echo "    ✓ OpenRouter MCP confirmed!"
 else
-  echo "    Skipping MCP setup (you can add it later)"
+  echo "    ⚠️  Skipping MCP setup (you can add it later)"
 fi
 
-# --- 6. cleanup instructions -------------------------------------------------------
+# --- 8. Cleanup -------------------------------------------------------
 echo ""
-echo "==> Installation complete!"
+echo "==> Installation complete! ✅"
 echo ""
-echo "    ✓ openrouter/ folder installed at: $INSTALL_PARENT/openrouter"
-echo "    ✓ Aliases configured in: $ZSHRC"
+echo "    ✓ openrouter/ folder installed at: $INSTALL_DIR"
+echo "    ✓ Aliases configured in: $SHELL_RC"
 echo "    ✓ Credit-guard hook registered in: $CLAUDE_SETTINGS"
 echo ""
 echo "Next steps:"
 echo ""
 echo "    1. Reload shell configuration:"
-echo "       source ~/.zshrc"
+echo "       source $SHELL_RC"
 echo ""
 echo "    2. Launch Claude Code on any model:"
 echo "       or-kimi-k3     # Kimi K3 (default)"
@@ -173,7 +220,27 @@ echo "       or-gpt         # GPT-5.3 Codex"
 echo ""
 echo "    3. Switch models mid-session with: /model <slug-from-openrouter.ai/models>"
 echo ""
-echo "    ⚠️  IMPORTANT: After confirming everything works, you can delete or-github:"
-echo "       rm -rf $SCRIPT_DIR"
+
+# --- 9. Cleanup or-github -------------------------------------------------------
 echo ""
-echo "       The openrouter/ folder at $INSTALL_DIR will remain and continue to work."
+echo "==> Ready to clean up setup repository"
+echo ""
+echo "    The openrouter/ folder at $INSTALL_DIR will remain and continue to work."
+echo "    The or-github setup repository can now be safely deleted."
+echo ""
+printf "    Delete the or-github folder? (y/n): "
+read -r cleanup
+if [[ "$cleanup" =~ ^[Yy]$ ]]; then
+  if [[ -d "$SCRIPT_DIR/.git" ]]; then
+    # We're in a git repo, so remove it safely
+    rm -rf "$SCRIPT_DIR"
+    echo "    ✓ Deleted or-github repository"
+    echo ""
+    echo "Setup complete! Your openrouter/ installation is ready to use."
+  else
+    echo "    ⚠️  Could not verify git repository. Please manually delete:"
+    echo "       rm -rf $(dirname "$SCRIPT_DIR")"
+  fi
+else
+  echo "    Keeping or-github folder for reference"
+fi
