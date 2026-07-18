@@ -30,14 +30,20 @@ cd ~/Developer/or-github
 
 The `setup.sh` script will:
 
-1. **Create `./openrouter/`** in your current directory
+1. **Create `./.openrouter/`** in your current directory
    - `cc` — OpenRouter launcher script
    - `credit-guard.sh` — Spending limiter hook
    - `.env` — Your OpenRouter API key (chmod 600)
 
+   > The install folder is **dot-prefixed** (`.openrouter`): hidden from `ls`/Finder
+   > and it sorts *above* numbered project folders (e.g. `1_current_projects`), so it
+   > stays out of your everyday clutter while sitting right at the top when you look.
+
 2. **Configure your shell** (auto-detects bash/zsh)
    - Adds `or-opus`, `or-kimi-k3`, `or-gpt` aliases
    - Updates `~/.zshrc` or `~/.bashrc`
+   - Every alias launches with `--strict-mcp-config`, so **the `or-*` sessions load
+     no MCP servers** (see [Aliases & MCP behavior](#-aliases--mcp-behavior) below)
 
 3. **Register credit-guard hook** in `~/.claude/settings.json`
    - Prevents accidental credit spending
@@ -53,7 +59,7 @@ The `setup.sh` script will:
 
 6. **Prompt for cleanup**
    - Safely deletes this `or-github` repository
-   - Keeps `openrouter/` folder permanently
+   - Keeps `.openrouter/` folder permanently
 
 ## 🎯 After Setup
 
@@ -76,6 +82,33 @@ or-gpt         # GPT-5.3 Codex
 
 Example: `/model anthropic/claude-opus-4.8`
 
+## 🔌 Aliases & MCP behavior
+
+The `cc` launcher runs `claude --strict-mcp-config`, which tells Claude Code to use
+**only** MCP servers passed via `--mcp-config` — and the launcher passes none. The
+result:
+
+| Command             | MCP servers loaded?                          |
+|---------------------|----------------------------------------------|
+| `claude` (plain)    | ✅ All servers from `~/.claude.json`         |
+| `or-opus`           | ❌ None                                       |
+| `or-kimi-k3`        | ❌ None                                       |
+| `or-gpt`            | ❌ None                                       |
+
+**Why:** MCP tool schemas are re-serialized into *every* model request. With a dozen
+servers connected that is tens of thousands of input tokens on every turn — paid for
+on each call when you're routing through OpenRouter. Stripping them keeps the `or-*`
+sessions lean and cheap. Plain `claude` (going to Anthropic) is untouched and keeps
+the full toolset.
+
+**Opt specific servers back in** for a single session by passing your own config:
+
+```bash
+or-gpt --mcp-config '{"mcpServers":{"baserow_mcp":{ ... }}}'
+```
+
+Verify inside any `or-*` session with `/mcp` — it should list no servers.
+
 ## ✅ Requirements
 
 - ✅ Claude Code CLI installed (`claude` available on PATH)
@@ -86,8 +119,8 @@ Example: `/model anthropic/claude-opus-4.8`
 
 ## 📁 What Gets Installed
 
-**Permanent (`~/Developer/openrouter/`):**
-- `cc` — Launcher script
+**Permanent (`~/Developer/.openrouter/`):**
+- `cc` — Launcher script (runs `claude --strict-mcp-config` → no MCPs in `or-*` sessions)
 - `credit-guard.sh` — Spending limiter
 - `.env` — API key (chmod 600, git-ignored)
 
@@ -103,7 +136,7 @@ Example: `/model anthropic/claude-opus-4.8`
 **Models not working?**
 ```bash
 # Check API key
-cat ~/Developer/openrouter/.env
+cat ~/Developer/.openrouter/.env
 
 # Test manually
 or-opus "Say hello"
@@ -133,7 +166,7 @@ chmod +x ~/Developer/or-github/setup.sh
 
 ## 🔐 Security
 
-- API key stored in `~/.openrouter/.env` with `chmod 600`
+- API key stored in `~/Developer/.openrouter/.env` with `chmod 600`
 - Credentials never committed to git (`.env` is git-ignored)
 - Credit-guard hook prevents accidental credit spending
 - Setup repository safely deleted after installation
@@ -141,6 +174,6 @@ chmod +x ~/Developer/or-github/setup.sh
 ## 📝 Notes
 
 - Re-running `setup.sh` is safe: detects and skips existing configuration
-- The `openrouter/` folder remains and continues to work after deletion of `or-github`
+- The `.openrouter/` folder remains and continues to work after deletion of `or-github`
 - Credit-guard hook requires manual "run it" approval for spending Bash commands
 - Works on macOS, Linux, and Windows (with bash/zsh)

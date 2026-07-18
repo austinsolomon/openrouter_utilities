@@ -24,4 +24,9 @@ export ANTHROPIC_MODEL="$MODEL"
 export ANTHROPIC_DEFAULT_HAIKU_MODEL="$MODEL"    # background/fast calls
 export ANTHROPIC_SMALL_FAST_MODEL="$MODEL"        # legacy name, harmless
 
-exec claude "$@"
+# --strict-mcp-config: load ONLY MCP servers passed via --mcp-config (none here),
+# ignoring every user/project-scope server in ~/.claude.json. Keeps or-* sessions
+# free of the MCP tool-schema overhead (~tens of k input tokens/turn) that plain
+# `claude` carries. Pass `--mcp-config '{...}'` after the alias to opt specific
+# servers back in for a single session.
+exec claude --strict-mcp-config "$@"

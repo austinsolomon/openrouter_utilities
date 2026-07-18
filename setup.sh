@@ -4,7 +4,8 @@
 #   git clone <this-repo> && ./or-github/setup.sh
 #
 # What it does:
-#   1. Creates ./openrouter/ in the folder you ran this from (cc, credit-guard.sh, .env)
+#   1. Creates ./.openrouter/ in the folder you ran this from (cc, credit-guard.sh, .env)
+#      (dot-prefixed: hidden from ls/Finder and sorts above numbered project folders)
 #   2. Prompts for your OpenRouter API key and writes .env (skips if .env exists)
 #   3. Detects shell (zsh, bash, PowerShell) and adds aliases (idempotent)
 #   4. Registers the credit-guard PreToolUse hook in ~/.claude/settings.json
@@ -15,8 +16,8 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"  # where the cloned repo lives
-INSTALL_PARENT="$PWD"                            # openrouter/ goes where the command was run from
-INSTALL_DIR="$INSTALL_PARENT/openrouter"
+INSTALL_PARENT="$PWD"                            # .openrouter/ goes where the command was run from
+INSTALL_DIR="$INSTALL_PARENT/.openrouter"        # dot-prefixed: hidden + sorts to the top of the dir
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 
 # Detect shell
@@ -44,7 +45,7 @@ if ! command -v /usr/bin/python3 >/dev/null 2>&1; then
   exit 1
 fi
 
-# --- 1. openrouter/ folder ----------------------------------------------------
+# --- 1. .openrouter/ folder ----------------------------------------------------
 mkdir -p "$INSTALL_DIR"
 cp "$SCRIPT_DIR/cc" "$INSTALL_DIR/cc"
 cp "$SCRIPT_DIR/credit-guard.sh" "$INSTALL_DIR/credit-guard.sh"
@@ -204,7 +205,7 @@ fi
 echo ""
 echo "==> Installation complete! ✅"
 echo ""
-echo "    ✓ openrouter/ folder installed at: $INSTALL_DIR"
+echo "    ✓ .openrouter/ folder installed at: $INSTALL_DIR"
 echo "    ✓ Aliases configured in: $SHELL_RC"
 echo "    ✓ Credit-guard hook registered in: $CLAUDE_SETTINGS"
 echo ""
@@ -225,7 +226,7 @@ echo ""
 echo ""
 echo "==> Ready to clean up setup repository"
 echo ""
-echo "    The openrouter/ folder at $INSTALL_DIR will remain and continue to work."
+echo "    The .openrouter/ folder at $INSTALL_DIR will remain and continue to work."
 echo "    The or-github setup repository can now be safely deleted."
 echo ""
 printf "    Delete the or-github folder? (y/n): "
@@ -236,7 +237,7 @@ if [[ "$cleanup" =~ ^[Yy]$ ]]; then
     rm -rf "$SCRIPT_DIR"
     echo "    ✓ Deleted or-github repository"
     echo ""
-    echo "Setup complete! Your openrouter/ installation is ready to use."
+    echo "Setup complete! Your .openrouter/ installation is ready to use."
   else
     echo "    ⚠️  Could not verify git repository. Please manually delete:"
     echo "       rm -rf $(dirname "$SCRIPT_DIR")"
