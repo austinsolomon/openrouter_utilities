@@ -17,8 +17,8 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"  # where the cloned repo lives
-INSTALL_PARENT="$PWD"                            # .openrouter/ goes where the command was run from
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"     # where the cloned repo (or-github) lives
+INSTALL_PARENT="$SCRIPT_DIR"                     # .openrouter/ goes in the or-github folder
 INSTALL_DIR="$INSTALL_PARENT/.openrouter"        # dot-prefixed: hidden + sorts to the top of the dir
 CLAUDE_SETTINGS="$HOME/.claude/settings.json"
 
@@ -42,8 +42,27 @@ if ! command -v claude >/dev/null 2>&1; then
   echo "         Install Claude Code first: https://claude.com/claude-code"
   echo "         (continuing anyway — aliases will work once it's installed)"
 fi
-if ! command -v /usr/bin/python3 >/dev/null 2>&1; then
-  echo "ERROR: /usr/bin/python3 not found (needed by credit-guard.sh)." >&2
+# Find Python 3 (works on macOS, Linux, and Windows)
+# On Windows, prefer the full path to avoid shell redirection to Microsoft Store
+PYTHON3=""
+if command -v /usr/bin/python3 >/dev/null 2>&1; then
+  PYTHON3="/usr/bin/python3"
+elif ls "$HOME"/AppData/Local/Programs/Python/*/python.exe >/dev/null 2>&1; then
+  # Windows Python installation
+  PYTHON3="$(ls "$HOME"/AppData/Local/Programs/Python/*/python.exe 2>/dev/null | head -1)"
+fi
+
+if [[ -z "$PYTHON3" ]]; then
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON3="python3"
+  elif command -v python >/dev/null 2>&1; then
+    # Last resort - try python (may be redirected on Windows, but worth trying)
+    PYTHON3="python"
+  fi
+fi
+
+if [[ -z "$PYTHON3" ]]; then
+  echo "ERROR: Python 3 not found (needed by credit-guard.sh)." >&2
   exit 1
 fi
 
@@ -100,7 +119,7 @@ fi
 
 # --- 4. guard hooks in ~/.claude/settings.json -----------------------------------
 echo "==> Registering PreToolUse guard hooks (credit-guard + openrouter-mcp-guard)"
-INSTALL_DIR="$INSTALL_DIR" /usr/bin/python3 - <<'PY'
+INSTALL_DIR="$INSTALL_DIR" "$PYTHON3" - <<'PY'
 import json, os, sys
 
 path = os.path.expanduser("~/.claude/settings.json")
