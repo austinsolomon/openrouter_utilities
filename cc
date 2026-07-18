@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/bash
 # Launch Claude Code with OpenRouter as the backend (one endpoint, all models).
 #
 #   ./cc                                  # default model (Kimi K3)
@@ -13,8 +13,8 @@
 # (any slug from https://openrouter.ai/models works — same session continues)
 
 set -a
-source "${0:A:h}/.env"          # loads OPENROUTER_API_KEY
-set +a
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/.env"
 
 MODEL="${OR_MODEL:-moonshotai/kimi-k3}"
 
