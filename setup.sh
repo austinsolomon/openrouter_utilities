@@ -119,16 +119,61 @@ else:
     print(f"    added to {path}")
 PY
 
-# --- 5. done ---------------------------------------------------------------------
+# --- 5. OpenRouter MCP setup -------------------------------------------------------
+echo "==> Setting up OpenRouter MCP"
 echo ""
-echo "Done. Now run:"
+echo "    The OpenRouter MCP allows Claude Code to route requests through OpenRouter."
+echo "    This is REQUIRED for the or-* aliases to work properly."
 echo ""
-echo "    source ~/.zshrc"
+printf "    Do you want to install/configure the openrouter MCP now? (y/n): "
+read -r install_mcp
+if [[ "$install_mcp" =~ ^[Yy]$ ]]; then
+  echo ""
+  echo "    1. Open Claude Code settings: ~/.claude/settings.json"
+  echo "    2. Add the following to the 'mcpServers' section:"
+  echo ""
+  cat <<'MCP_CONFIG'
+    "openrouter": {
+      "command": "node",
+      "args": ["path/to/openrouter-mcp/index.js"],
+      "env": {
+        "OPENROUTER_API_KEY": "sk-or-v1-...",
+        "OR_MODEL": "anthropic/claude-opus-4.8"
+      }
+    }
+MCP_CONFIG
+  echo ""
+  echo "    3. Save and restart Claude Code"
+  echo "    4. Verify MCP is connected: /mcp list"
+  echo ""
+  printf "    Press Enter when MCP is confirmed connected: "
+  read -r
+  echo "    ✓ OpenRouter MCP confirmed!"
+else
+  echo "    Skipping MCP setup (you can add it later)"
+fi
+
+# --- 6. cleanup instructions -------------------------------------------------------
 echo ""
-echo "Then launch Claude Code on any model:"
+echo "==> Installation complete!"
 echo ""
-echo "    or-kimi-k3     # Kimi K3 (default)"
-echo "    or-opus        # Claude Opus 4.8"
-echo "    or-gpt         # GPT-5.3 Codex"
+echo "    ✓ openrouter/ folder installed at: $INSTALL_PARENT/openrouter"
+echo "    ✓ Aliases configured in: $ZSHRC"
+echo "    ✓ Credit-guard hook registered in: $CLAUDE_SETTINGS"
 echo ""
-echo "Switch models mid-session with:  /model <slug-from-openrouter.ai/models>"
+echo "Next steps:"
+echo ""
+echo "    1. Reload shell configuration:"
+echo "       source ~/.zshrc"
+echo ""
+echo "    2. Launch Claude Code on any model:"
+echo "       or-kimi-k3     # Kimi K3 (default)"
+echo "       or-opus        # Claude Opus 4.8"
+echo "       or-gpt         # GPT-5.3 Codex"
+echo ""
+echo "    3. Switch models mid-session with: /model <slug-from-openrouter.ai/models>"
+echo ""
+echo "    ⚠️  IMPORTANT: After confirming everything works, you can delete or-github:"
+echo "       rm -rf $SCRIPT_DIR"
+echo ""
+echo "       The openrouter/ folder at $INSTALL_DIR will remain and continue to work."
