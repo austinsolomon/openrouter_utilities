@@ -1,68 +1,146 @@
-# or-github
+# 🚀 or-github — OpenRouter Setup
 
-One-command setup for OpenRouter-backed Claude Code on a fresh machine.
-Replicates: the `openrouter/` launcher folder, the `or-*` zsh aliases, and the
-credit-guard PreToolUse hook.
+Complete one-click setup for OpenRouter-backed Claude Code with automatic model testing, MCP configuration, and cleanup.
 
-## The one command
+## ⚡ Quick Start (Recommended)
 
-Clone, then run `setup.sh` **from the folder where you want `openrouter/` to live**
-(e.g. `~/Developer`):
-
-```zsh
-git clone <this-repo-url> && ./or-github/setup.sh
-```
-
-The script will:
-
-1. Create `./openrouter/` (in the folder you ran the command from) containing:
-   - `cc` — the launcher that points Claude Code at OpenRouter
-   - `credit-guard.sh` — blocks credit-spending commands until you say "run it"
-2. Prompt you to paste your **OpenRouter API key**
-   ([get one here](https://openrouter.ai/keys), starts with `sk-or-v1-...`) and write
-   `openrouter/.env` in this format:
-   ```
-   OPENROUTER_API_KEY=sk-or-v1-xxxx....
-   ```
-   (If `.env` already exists, it's left untouched.)
-3. Append these aliases to your `~/.zshrc` (skips if already present):
-   ```zsh
-   alias or-opus='OR_MODEL=anthropic/claude-opus-4.8 <path>/openrouter/cc'
-   alias or-kimi-k3='OR_MODEL=moonshotai/kimi-k3 <path>/openrouter/cc'
-   alias or-gpt='OR_MODEL=openai/gpt-5.3-codex <path>/openrouter/cc'
-   ```
-4. Register `credit-guard.sh` as a PreToolUse hook in `~/.claude/settings.json`
-   (merges into existing settings, skips if already registered).
-
-## After setup
-
-```zsh
-source ~/.zshrc
-```
-
-Then:
-
-```zsh
-or-kimi-k3     # Claude Code on Kimi K3 (default)
-or-opus        # Claude Code on Claude Opus 4.8
-or-gpt         # Claude Code on GPT-5.3 Codex
-```
-
-Switch models mid-session without exiting:
+From Claude Code, run the setup skill:
 
 ```
-/model <any-slug-from-https://openrouter.ai/models>
+/setup-openrouter
 ```
 
-## Prerequisites
+The skill will interactively guide you through:
+- Environment detection (OS + shell)
+- OpenRouter API key configuration
+- Shell alias setup (auto-detects bash/zsh)
+- Model connectivity testing
+- OpenRouter MCP installation & verification
+- Safe cleanup of this repository
 
-- macOS with zsh and `/usr/bin/python3` (both standard)
-- [Claude Code](https://claude.com/claude-code) installed (`claude` on PATH)
-- An OpenRouter API key
+## 📋 Manual Setup (Alternative)
 
-## Notes
+If you prefer to run the setup script directly:
 
-- `.env` is git-ignored and created with `chmod 600` — your key never enters the repo.
-- Re-running `setup.sh` is safe: existing `.env`, aliases, and hook are detected and skipped.
-- The credit-guard hook makes Claude ask for an explicit "run it" before any Bash
-  command that would spend OpenRouter credits.
+```bash
+git clone <this-repo-url> ~/Developer/or-github
+cd ~/Developer/or-github
+./setup.sh
+```
+
+The `setup.sh` script will:
+
+1. **Create `./openrouter/`** in your current directory
+   - `cc` — OpenRouter launcher script
+   - `credit-guard.sh` — Spending limiter hook
+   - `.env` — Your OpenRouter API key (chmod 600)
+
+2. **Configure your shell** (auto-detects bash/zsh)
+   - Adds `or-opus`, `or-kimi-k3`, `or-gpt` aliases
+   - Updates `~/.zshrc` or `~/.bashrc`
+
+3. **Register credit-guard hook** in `~/.claude/settings.json`
+   - Prevents accidental credit spending
+   - Requires manual approval for Bash commands
+
+4. **Test model connectivity**
+   - Verifies `or-opus`, `or-kimi-k3`, `or-gpt` work
+   - Reports any connectivity issues
+
+5. **Guide OpenRouter MCP setup**
+   - Step-by-step configuration instructions
+   - Waits for MCP verification
+
+6. **Prompt for cleanup**
+   - Safely deletes this `or-github` repository
+   - Keeps `openrouter/` folder permanently
+
+## 🎯 After Setup
+
+### Source Shell Configuration
+```bash
+source ~/.zshrc    # or ~/.bashrc
+```
+
+### Launch Claude Code
+```bash
+or-kimi-k3     # Kimi K3 (default)
+or-opus        # Claude Opus 4.8
+or-gpt         # GPT-5.3 Codex
+```
+
+### Switch Models Mid-Session
+```
+/model <slug-from-openrouter.ai/models>
+```
+
+Example: `/model anthropic/claude-opus-4.8`
+
+## ✅ Requirements
+
+- ✅ Claude Code CLI installed (`claude` available on PATH)
+- ✅ OpenRouter API key from https://openrouter.ai/keys
+- ✅ Python 3 (for credit-guard: `/usr/bin/python3` on Unix, PATH on Windows)
+- ✅ Bash or Zsh shell
+- ✅ Git installed (to clone repository)
+
+## 📁 What Gets Installed
+
+**Permanent (`~/Developer/openrouter/`):**
+- `cc` — Launcher script
+- `credit-guard.sh` — Spending limiter
+- `.env` — API key (chmod 600, git-ignored)
+
+**Shell Configuration:**
+- `.zshrc` or `.bashrc` — Aliases for or-*, or-kimi-k3, or-gpt
+- `~/.claude/settings.json` — credit-guard hook
+
+**Temporary (deleted after setup):**
+- `or-github/` — This setup repository
+
+## 🔧 Troubleshooting
+
+**Models not working?**
+```bash
+# Check API key
+cat ~/Developer/openrouter/.env
+
+# Test manually
+or-opus "Say hello"
+
+# Check OpenRouter credits at https://openrouter.ai/
+```
+
+**Aliases not found?**
+```bash
+# Reload shell
+source ~/.zshrc  # or ~/.bashrc
+
+# Verify aliases
+grep "or-opus" ~/.zshrc
+```
+
+**MCP won't connect?**
+- Check `~/.claude/settings.json` for correct MCP server path
+- Verify OpenRouter API key in `.env`
+- Restart Claude Code and run `/mcp list`
+
+**Permission denied?**
+```bash
+chmod +x ~/Developer/or-github/setup.sh
+./setup.sh
+```
+
+## 🔐 Security
+
+- API key stored in `~/.openrouter/.env` with `chmod 600`
+- Credentials never committed to git (`.env` is git-ignored)
+- Credit-guard hook prevents accidental credit spending
+- Setup repository safely deleted after installation
+
+## 📝 Notes
+
+- Re-running `setup.sh` is safe: detects and skips existing configuration
+- The `openrouter/` folder remains and continues to work after deletion of `or-github`
+- Credit-guard hook requires manual "run it" approval for spending Bash commands
+- Works on macOS, Linux, and Windows (with bash/zsh)
