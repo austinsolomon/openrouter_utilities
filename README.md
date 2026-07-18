@@ -32,7 +32,8 @@ The `setup.sh` script will:
 
 1. **Create `./.openrouter/`** in your current directory
    - `cc` — OpenRouter launcher script
-   - `credit-guard.sh` — Spending limiter hook
+   - `credit-guard.sh` — Spending limiter hook (Bash commands)
+   - `openrouter-mcp-guard.sh` — Spending limiter hook (paid OpenRouter MCP tools)
    - `.env` — Your OpenRouter API key (chmod 600)
 
    > The install folder is **dot-prefixed** (`.openrouter`): hidden from `ls`/Finder
@@ -45,9 +46,11 @@ The `setup.sh` script will:
    - Every alias launches with `--strict-mcp-config`, so **the `or-*` sessions load
      no MCP servers** (see [Aliases & MCP behavior](#-aliases--mcp-behavior) below)
 
-3. **Register credit-guard hook** in `~/.claude/settings.json`
+3. **Register guard hooks** in `~/.claude/settings.json`
    - Prevents accidental credit spending
-   - Requires manual approval for Bash commands
+   - `credit-guard` requires manual approval for credit-spending Bash commands
+   - `openrouter-mcp-guard` prompts before paid OpenRouter MCP calls
+     (`generate-image`, `generate-speech`, `transcribe-audio`, `send-message`)
 
 4. **Test model connectivity**
    - Verifies `or-opus`, `or-kimi-k3`, `or-gpt` work
@@ -121,12 +124,13 @@ Verify inside any `or-*` session with `/mcp` — it should list no servers.
 
 **Permanent (`~/Developer/.openrouter/`):**
 - `cc` — Launcher script (runs `claude --strict-mcp-config` → no MCPs in `or-*` sessions)
-- `credit-guard.sh` — Spending limiter
+- `credit-guard.sh` — Spending limiter (Bash commands)
+- `openrouter-mcp-guard.sh` — Spending limiter (paid OpenRouter MCP tools)
 - `.env` — API key (chmod 600, git-ignored)
 
 **Shell Configuration:**
 - `.zshrc` or `.bashrc` — Aliases for or-*, or-kimi-k3, or-gpt
-- `~/.claude/settings.json` — credit-guard hook
+- `~/.claude/settings.json` — credit-guard + openrouter-mcp-guard hooks
 
 **Temporary (deleted after setup):**
 - `or-github/` — This setup repository

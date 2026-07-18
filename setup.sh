@@ -4,11 +4,13 @@
 #   git clone <this-repo> && ./or-github/setup.sh
 #
 # What it does:
-#   1. Creates ./.openrouter/ in the folder you ran this from (cc, credit-guard.sh, .env)
+#   1. Creates ./.openrouter/ in the folder you ran this from
+#      (cc, credit-guard.sh, openrouter-mcp-guard.sh, .env)
 #      (dot-prefixed: hidden from ls/Finder and sorts above numbered project folders)
 #   2. Prompts for your OpenRouter API key and writes .env (skips if .env exists)
 #   3. Detects shell (zsh, bash, PowerShell) and adds aliases (idempotent)
-#   4. Registers the credit-guard PreToolUse hook in ~/.claude/settings.json
+#   4. Registers both PreToolUse guard hooks in ~/.claude/settings.json:
+#        credit-guard (Bash spends) + openrouter-mcp-guard (paid MCP tool calls)
 #   5. Tests each model to ensure connectivity
 #   6. Guides OpenRouter MCP setup and verification
 #   7. Prompts to delete or-github (this repo) after setup completes
@@ -49,8 +51,9 @@ fi
 mkdir -p "$INSTALL_DIR"
 cp "$SCRIPT_DIR/cc" "$INSTALL_DIR/cc"
 cp "$SCRIPT_DIR/credit-guard.sh" "$INSTALL_DIR/credit-guard.sh"
-chmod +x "$INSTALL_DIR/cc" "$INSTALL_DIR/credit-guard.sh"
-echo "    copied cc + credit-guard.sh"
+cp "$SCRIPT_DIR/openrouter-mcp-guard.sh" "$INSTALL_DIR/openrouter-mcp-guard.sh"
+chmod +x "$INSTALL_DIR/cc" "$INSTALL_DIR/credit-guard.sh" "$INSTALL_DIR/openrouter-mcp-guard.sh"
+echo "    copied cc + credit-guard.sh + openrouter-mcp-guard.sh"
 
 # --- 2. .env ------------------------------------------------------------------
 if [[ -f "$INSTALL_DIR/.env" ]]; then
@@ -95,13 +98,24 @@ else
   printf '\n%s\n' "$ALIAS_BLOCK" >> "$SHELL_RC"
 fi
 
-# --- 4. credit-guard hook in ~/.claude/settings.json -----------------------------
-echo "==> Registering credit-guard PreToolUse hook"
+# --- 4. guard hooks in ~/.claude/settings.json -----------------------------------
+echo "==> Registering PreToolUse guard hooks (credit-guard + openrouter-mcp-guard)"
 INSTALL_DIR="$INSTALL_DIR" /usr/bin/python3 - <<'PY'
 import json, os, sys
 
 path = os.path.expanduser("~/.claude/settings.json")
-guard = os.path.join(os.environ["INSTALL_DIR"], "credit-guard.sh")
+install = os.environ["INSTALL_DIR"]
+
+# (matcher, script) pairs this installer keeps registered. credit-guard covers
+# Bash commands that spend OpenRouter credits; openrouter-mcp-guard covers the
+# paid OpenRouter MCP tool calls (which aren't Bash and bypass credit-guard).
+guards = [
+    ("Bash", os.path.join(install, "credit-guard.sh")),
+    (
+        "mcp__openrouter__(generate-image|generate-speech|transcribe-audio|send-message)",
+        os.path.join(install, "openrouter-mcp-guard.sh"),
+    ),
+]
 
 cfg = {}
 if os.path.exists(path):
@@ -115,23 +129,30 @@ if os.path.exists(path):
 hooks = cfg.setdefault("hooks", {})
 pre = hooks.setdefault("PreToolUse", [])
 
-already = any(
-    h.get("command") == guard
-    for entry in pre
-    for h in entry.get("hooks", [])
-)
-if already:
-    print("    hook already registered — skipping")
-else:
-    pre.append({
-        "matcher": "Bash",
-        "hooks": [{"type": "command", "command": guard}],
-    })
+changed = False
+for matcher, guard in guards:
+    name = os.path.basename(guard)
+    already = any(
+        h.get("command") == guard
+        for entry in pre
+        for h in entry.get("hooks", [])
+    )
+    if already:
+        print(f"    {name} already registered — skipping")
+    else:
+        pre.append({
+            "matcher": matcher,
+            "hooks": [{"type": "command", "command": guard}],
+        })
+        changed = True
+        print(f"    registered {name}")
+
+if changed:
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w") as f:
         json.dump(cfg, f, indent=2)
         f.write("\n")
-    print(f"    added to {path}")
+    print(f"    wrote {path}")
 PY
 
 # --- 5. Model Testing -------------------------------------------------------
