@@ -106,7 +106,7 @@ fi
 ALIAS_BLOCK="# OpenRouter-backed Claude Code launchers (see $INSTALL_DIR)
 alias or-opus='OR_MODEL=anthropic/claude-opus-4.8 $INSTALL_DIR/cc'
 alias or-kimi-k3='OR_MODEL=moonshotai/kimi-k3 $INSTALL_DIR/cc'
-alias or-gpt='OR_MODEL=openai/gpt-5.3-codex $INSTALL_DIR/cc'"
+alias or-gpt='OR_MODEL=openai/gpt-5.6-sol $INSTALL_DIR/cc'"
 
 echo "==> Configuring $SHELL_NAME shell aliases"
 touch "$SHELL_RC"
@@ -188,7 +188,7 @@ if command -v claude >/dev/null 2>&1; then
   export OPENROUTER_API_KEY=$(grep OPENROUTER_API_KEY "$INSTALL_DIR/.env" | cut -d= -f2)
   export OR_MODEL="anthropic/claude-opus-4.8"
 
-  models=("or-opus:anthropic/claude-opus-4.8" "or-kimi-k3:moonshotai/kimi-k3" "or-gpt:openai/gpt-5.3-codex")
+  models=("or-opus:anthropic/claude-opus-4.8" "or-kimi-k3:moonshotai/kimi-k3" "or-gpt:openai/gpt-5.6-sol")
   for model_pair in "${models[@]}"; do
     IFS=: read -r name slug <<< "$model_pair"
     printf "    Testing %-15s ... " "$name"
@@ -257,7 +257,7 @@ echo ""
 echo "    2. Launch Claude Code on any model:"
 echo "       or-kimi-k3     # Kimi K3 (default)"
 echo "       or-opus        # Claude Opus 4.8"
-echo "       or-gpt         # GPT-5.3 Codex"
+echo "       or-gpt         # GPT-5.6 Sol"
 echo ""
 echo "    3. Switch models mid-session with: /model <slug-from-openrouter.ai/models>"
 echo ""

@@ -75,7 +75,7 @@ source ~/.zshrc    # or ~/.bashrc
 ```bash
 or-kimi-k3     # Kimi K3 (default)
 or-opus        # Claude Opus 4.8
-or-gpt         # GPT-5.3 Codex
+or-gpt         # GPT-5.6 Sol
 ```
 
 ### Switch Models Mid-Session
@@ -147,6 +147,14 @@ or-opus "Say hello"
 
 # Check OpenRouter credits at https://openrouter.ai/
 ```
+
+**`anthropic/*` models work but `openai/*` or `moonshotai/*` 404 with
+"No allowed providers are available"?**
+
+Something in your environment is exporting a real `ANTHROPIC_API_KEY` (`sk-ant-...`).
+Claude Code sends it as the `x-api-key` header, which makes OpenRouter pin the request
+to the `anthropic` provider. The `cc` launcher already `unset`s it after sourcing
+`.env` — if you wrap or replace `cc`, keep that line.
 
 **Aliases not found?**
 ```bash
